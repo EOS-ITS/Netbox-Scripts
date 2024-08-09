@@ -14,24 +14,24 @@ class NewBranchScript(Script):
     site_name = StringVar(
         description="Name of the new site"
     )
-    switch_count = IntegerVar(
+    core_switch_count = IntegerVar(
         description="Number of Core Switches to create"
     )
-    switch_model = ObjectVar(
+    core_switch_model = ObjectVar(
         description="Core Switch Model",
         model=DeviceType
     )
-    switch_count = IntegerVar(
+    access_switch_count = IntegerVar(
         description="Number of Access Switches to create"
     )
-    switch_model = ObjectVar(
+    access_switch_model = ObjectVar(
         description="Access Switch model",
         model=DeviceType
     )
-    switch_count = IntegerVar(
+    cabin_switch_count = IntegerVar(
         description="Number of Cabin Switches to create"
     )
-    switch_model = ObjectVar(
+    cabin_switch_model = ObjectVar(
         description="Cabin Switch Model",
         model=DeviceType
     )
@@ -48,7 +48,7 @@ class NewBranchScript(Script):
         self.log_success(f"Created new site: {site}")
 
         # Create Core Switches
-        switch_role = DeviceRole.objects.get(name='Core Switch')
+        core_switch_role = DeviceRole.objects.get(name='Core Switch')
         for i in range(1, data['core_switch_count'] + 1):
             switch = Device(
                 device_type=data['core_switch_model'],
@@ -61,7 +61,7 @@ class NewBranchScript(Script):
             self.log_success(f"Created new Core switch: {switch}")
 
         # Create Access Switches
-        switch_role = DeviceRole.objects.get(name='Access Switch')
+        access_switch_role = DeviceRole.objects.get(name='Access Switch')
         for i in range(1, data['access_switch_count'] + 1):
             switch = Device(
                 device_type=data['access_switch_model'],
@@ -74,7 +74,7 @@ class NewBranchScript(Script):
             self.log_success(f"Created new switch: {switch}")
 
         # Create Cabin Switches
-        switch_role = DeviceRole.objects.get(name='Cabin Switch')
+        cabin_switch_role = DeviceRole.objects.get(name='Cabin Switch')
         for i in range(1, data['cabin_switch_count'] + 1):
             switch = Device(
                 device_type=data['cabin_switch_model'],

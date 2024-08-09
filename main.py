@@ -44,7 +44,7 @@ class DeploySiteWithVLANs(Script):
         model=DeviceType,
         required=False
     )
-    csv_url = StringVar(
+    vlan_csv_url = StringVar(
         description="Enter the URL of the CSV file containing VLAN IDs and names",
     )
     management_vlan_id = IntegerVar(
@@ -113,7 +113,7 @@ class DeploySiteWithVLANs(Script):
             create_switches(data['cabin_switch_count'], data['cabin_switch_model'], cabin_switch_role, "CABIN")
 
         # Step 7: Fetch and Create VLANs from CSV
-        url = data['csv_url']
+        url = data['vlan_csv_url']
         try:
             response = requests.get(url)
             response.raise_for_status()  # Raise an exception for HTTP errors

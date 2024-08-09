@@ -52,7 +52,7 @@ class DeploySiteWithVLANs(Script):
         site = Site(
             name=data['site_name'],
             slug=slugify(data['site_name']),
-            description=f"Ship ID: {data['ship_id']}",
+            description=f"{data['ship_id']}",
             status=SiteStatusChoices.STATUS_PLANNED
         )
         site.save()

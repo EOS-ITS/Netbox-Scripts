@@ -41,11 +41,19 @@ class CreateVLANsFromCSVScript(Script):
             self.log_failure(f"Failed to download CSV file: {e}")
             return
 
+        # Debugging: Print the CSV content to the log
+        self.log_info(f"CSV Content:\n{csv_content}")
+
         # Read VLANs from CSV content
         reader = csv.DictReader(StringIO(csv_content))
+        
+        # Debugging: Print the headers
+        self.log_info(f"CSV Headers: {reader.fieldnames}")
+        
         for row in reader:
-            vlan_id = int(row['vlan_id'])
-            vlan_name = row['name'].strip()
+            self.log_info(f"Processing row: {row}")
+            vlan_id = int(row['vlan_id'].strip())  # Ensure stripping any extra spaces
+            vlan_name = row['name'].strip()  # Ensure stripping any extra spaces
             vlan = VLAN(
                 vid=vlan_id,
                 name=vlan_name,

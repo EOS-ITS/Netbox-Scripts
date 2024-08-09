@@ -41,24 +41,35 @@ class CreateVLANsFromCSVScript(Script):
             self.log_failure(f"Failed to download CSV file: {e}")
             return
 
-        # Debugging: Print the CSV content to the log
-        self.log_info(f"CSV Content:\n{csv_content}")
-
         # Read VLANs from CSV content
         reader = csv.DictReader(StringIO(csv_content))
-        
-        # Debugging: Print the headers
-        self.log_info(f"CSV Headers: {reader.fieldnames}")
-        
+
+        # Debugging: Print the detected headers
+        detected_headers = reader.fieldnames
+        self.log_info(f"Detected Headers: {detected_headers}")
+
+        if detected_headers is None:
+            self.log_failure("No headers detected. Check the CSV format.")
+            return
+
+        # Mapping headers manually if there's an issue
+        header_map = {header.lower().strip(): header for header in detected_headers}
+        if 'vlan_id' not in header_map:
+            self.log_failure(f"'vlan_id' header not found in detected headers: {detected_headers}")
+            return
+        if 'name' not in header_map:
+            self.log_failure(f"'name' header not found in detected headers: {detected_headers}")
+            return
+
         for row in reader:
             self.log_info(f"Processing row: {row}")
-            vlan_id = int(row['vlan_id'].strip())  # Ensure stripping any extra spaces
-            vlan_name = row['name'].strip()  # Ensure stripping any extra spaces
+            vlan_id = int(row[header_map['vlan_id']].strip())
+            vlan_name = row[header_map['name']].strip()
             vlan = VLAN(
                 vid=vlan_id,
                 name=vlan_name,
                 group=vlan_group,
-                site=data['site']  # Assign site to each VLAN directly
+                site=data['site']
             )
             vlan.save()
             self.log_success(f"Created VLAN: {vlan}")

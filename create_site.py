@@ -4,7 +4,6 @@ from django.utils.text import slugify
 from dcim.choices import DeviceStatusChoices, SiteStatusChoices
 from dcim.models import Device, DeviceRole, DeviceType, Site
 
-
 class NewBranchScript(Script):
 
     class Meta:
@@ -52,7 +51,7 @@ class NewBranchScript(Script):
         for i in range(1, data['core_switch_count'] + 1):
             switch = Device(
                 device_type=data['core_switch_model'],
-                name=f'{site.slug.upper()}-SW-{i}',
+                name=f'{site.slug.upper()}-CORE-SW-{i}',
                 site=site,
                 status=DeviceStatusChoices.STATUS_PLANNED,
                 device_role=core_switch_role
@@ -65,26 +64,26 @@ class NewBranchScript(Script):
         for i in range(1, data['access_switch_count'] + 1):
             switch = Device(
                 device_type=data['access_switch_model'],
-                name=f'{site.slug.upper()}-SW-{i}',
+                name=f'{site.slug.upper()}-ACCESS-SW-{i}',
                 site=site,
                 status=DeviceStatusChoices.STATUS_PLANNED,
                 device_role=access_switch_role
             )
             switch.save()
-            self.log_success(f"Created new switch: {switch}")
+            self.log_success(f"Created new Access switch: {switch}")
 
         # Create Cabin Switches
         cabin_switch_role = DeviceRole.objects.get(name='Cabin Switch')
         for i in range(1, data['cabin_switch_count'] + 1):
             switch = Device(
                 device_type=data['cabin_switch_model'],
-                name=f'{site.slug.upper()}-SW-{i}',
+                name=f'{site.slug.upper()}-CABIN-SW-{i}',
                 site=site,
                 status=DeviceStatusChoices.STATUS_PLANNED,
                 device_role=cabin_switch_role
             )
             switch.save()
-            self.log_success(f"Created new switch: {switch}")
+            self.log_success(f"Created new Cabin switch: {switch}")
 
         # Generate a CSV table of new devices
         output = [

@@ -1,19 +1,16 @@
-import csv
-import requests
-from io import StringIO
+from extras.scripts import *
 from django.utils.text import slugify
-from ipam.models import VLAN
-from dcim.choices import DeviceStatusChoices, SiteStatusChoices
-from dcim.models import Device, DeviceRole, DeviceType, Site
-from extras.scripts import Script, StringVar, IntegerVar, ObjectVar
+from dcim.choices import DeviceStatusChoices, SiteStatusChoices, InterfaceTypeChoices
+from dcim.models import Device, DeviceRole, DeviceType, Site, Interface
+from ipam.models import VLAN, Prefix
+from ipam.fields import IPNetworkField
 
-class NewBranchWithVLANsScript(Script):
-
+class DeploySite(Script):
+    
     class Meta:
-        name = "New Branch with VLANs"
-        description = "Provision a new site with switches and create Layer 2 VLANs from a CSV"
+        name = "Deploy Site"
+        description = "Automate site deployment including VLANs, management prefix, and virtual interfaces."
 
-    # Site and device creation inputs
     site_name = StringVar(
         description="Name of the new site"
     )
@@ -41,14 +38,15 @@ class NewBranchWithVLANsScript(Script):
         model=DeviceType,
         required=False
     )
-
-    # VLAN creation inputs
-    csv_url = StringVar(
-        description="Enter the URL of the CSV file containing VLAN IDs and names",
+    vlan_id = IntegerVar(
+        description="VLAN ID for Management Interface"
+    )
+    management_prefix = IPNetworkField(
+        description="Management Prefix (e.g., 192.168.1.0/24)"
     )
 
     def run(self, data, commit):
-        # Step 1: Create the new site
+        # Create the new site
         site = Site(
             name=data['site_name'],
             slug=slugify(data['site_name']),
@@ -57,103 +55,61 @@ class NewBranchWithVLANsScript(Script):
         site.save()
         self.log_success(f"Created new site: {site}")
 
-        # Step 2: Create Core Switches
+        # Create the management prefix
+        prefix = Prefix(
+            prefix=data['management_prefix'],
+            site=site,
+            status='active',
+            role=None  # You can set a role if you have predefined roles in NetBox
+        )
+        prefix.save()
+        self.log_success(f"Created management prefix: {prefix.prefix} for site {site.name}")
+
+        # Create the VLAN for the management interface
+        vlan = VLAN(
+            vid=data['vlan_id'],
+            name=f"VLAN{data['vlan_id']}",
+            site=site
+        )
+        vlan.save()
+        self.log_success(f"Created VLAN {vlan.vid} for site {site.name}")
+
+        # Function to create switches and their management interfaces
+        def create_switches(switch_count, switch_model, switch_role, switch_type):
+            for i in range(1, switch_count + 1):
+                switch = Device(
+                    device_type=switch_model,
+                    name=f'{site.slug.upper()}-{switch_type}-SW-{i}',
+                    site=site,
+                    status=DeviceStatusChoices.STATUS_PLANNED,
+                    device_role=switch_role
+                )
+                switch.save()
+                self.log_success(f"Created new {switch_type} switch: {switch.name}")
+
+                # Create virtual interface for the management VLAN
+                interface = Interface(
+                    name=f"Vlan{data['vlan_id']}",
+                    device=switch,
+                    type=InterfaceTypeChoices.TYPE_VIRTUAL,
+                    enabled=True
+                )
+                interface.save()
+                self.log_success(f"Created virtual interface {interface.name} on {switch.name}")
+
+        # Create Core Switches
         if data['core_switch_count'] > 0:
             core_switch_role = DeviceRole.objects.get(name='Core Switch')
-            for i in range(1, data['core_switch_count'] + 1):
-                switch = Device(
-                    device_type=data['core_switch_model'],
-                    name=f'{site.slug.upper()}-CORE-SW-{i}',
-                    site=site,
-                    status=DeviceStatusChoices.STATUS_PLANNED,
-                    device_role=core_switch_role
-                )
-                switch.save()
-                self.log_success(f"Created new Core switch: {switch}")
+            create_switches(data['core_switch_count'], data['core_switch_model'], core_switch_role, "CORE")
 
-        # Step 3: Create Access Switches
+        # Create Access Switches
         if data['access_switch_count'] > 0:
             access_switch_role = DeviceRole.objects.get(name='Access Switch')
-            for i in range(1, data['access_switch_count'] + 1):
-                switch = Device(
-                    device_type=data['access_switch_model'],
-                    name=f'{site.slug.upper()}-ACCESS-SW-{i}',
-                    site=site,
-                    status=DeviceStatusChoices.STATUS_PLANNED,
-                    device_role=access_switch_role
-                )
-                switch.save()
-                self.log_success(f"Created new Access switch: {switch}")
+            create_switches(data['access_switch_count'], data['access_switch_model'], access_switch_role, "ACCESS")
 
-        # Step 4: Create Cabin Switches
+        # Create Cabin Switches
         if data['cabin_switch_count'] > 0:
             cabin_switch_role = DeviceRole.objects.get(name='Cabin Switch')
-            for i in range(1, data['cabin_switch_count'] + 1):
-                switch = Device(
-                    device_type=data['cabin_switch_model'],
-                    name=f'{site.slug.upper()}-CABIN-SW-{i}',
-                    site=site,
-                    status=DeviceStatusChoices.STATUS_PLANNED,
-                    device_role=cabin_switch_role
-                )
-                switch.save()
-                self.log_success(f"Created new Cabin switch: {switch}")
+            create_switches(data['cabin_switch_count'], data['cabin_switch_model'], cabin_switch_role, "CABIN")
 
-        # Step 5: Generate a CSV table of new devices
-        output = [
-            'name,make,model'
-        ]
-        for device in Device.objects.filter(site=site):
-            attrs = [
-                device.name,
-                device.device_type.manufacturer.name,
-                device.device_type.model
-            ]
-            output.append(','.join(attrs))
-
-        self.log_info("Device creation completed.")
-        
-        # Step 6: VLAN Creation
-        url = data['csv_url']
-
-        # Fetch the CSV from the provided URL
-        try:
-            response = requests.get(url)
-            response.raise_for_status()  # Raise an exception for HTTP errors
-            csv_content = response.content.decode('utf-8')
-        except requests.exceptions.RequestException as e:
-            self.log_failure(f"Failed to fetch the CSV file: {e}")
-            return
-
-        # Read the CSV content
-        reader = csv.DictReader(StringIO(csv_content))
-
-        for row in reader:
-            # Output the row for debugging
-            self.log_info(f"Processing row: {row}")
-
-            # Normalize the keys by stripping whitespace and converting to lower case
-            row = {k.strip().lower(): v.strip() for k, v in row.items() if k and v}
-
-            # Safely access the VLAN ID and VLAN name
-            try:
-                vlan_id = int(row['vlan_id'])
-                vlan_name = row['vlan_name']
-            except KeyError as e:
-                self.log_failure(f"Missing expected column in CSV: {e}")
-                continue
-            except ValueError as e:
-                self.log_failure(f"Invalid VLAN ID value: {e}")
-                continue
-
-            # Check if the VLAN already exists in the selected site
-            if not VLAN.objects.filter(vid=vlan_id, site=site).exists():
-                vlan = VLAN(vid=vlan_id, name=vlan_name, site=site)
-                vlan.save()
-                self.log_success(f"Created VLAN {vlan_name} with ID {vlan_id} for site {site.name}")
-            else:
-                self.log_warning(f"VLAN {vlan_name} with ID {vlan_id} already exists for site {site.name}")
-
-        self.log_info("VLAN creation completed.")
-
-        return '\n'.join(output)
+        self.log_info("Site deployment completed.")

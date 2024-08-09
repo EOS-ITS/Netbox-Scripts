@@ -29,8 +29,22 @@ class CreateVLANs(Script):
         reader = csv.DictReader(StringIO(csv_content))
 
         for row in reader:
-            vlan_id = int(row['vlan_id'])
-            vlan_name = row['vlan_name']
+            # Output the row for debugging
+            self.log_info(f"Processing row: {row}")
+
+            # Normalize the keys by stripping whitespace and converting to lower case
+            row = {k.strip().lower(): v.strip() for k, v in row.items()}
+
+            # Safely access the VLAN ID and VLAN name
+            try:
+                vlan_id = int(row['vlan_id'])
+                vlan_name = row['vlan_name']
+            except KeyError as e:
+                self.log_failure(f"Missing expected column in CSV: {e}")
+                continue
+            except ValueError as e:
+                self.log_failure(f"Invalid VLAN ID value: {e}")
+                continue
 
             # Check if the VLAN already exists
             if not VLAN.objects.filter(vid=vlan_id).exists():

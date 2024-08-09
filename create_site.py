@@ -18,21 +18,24 @@ class NewBranchScript(Script):
     )
     core_switch_model = ObjectVar(
         description="Core Switch Model",
-        model=DeviceType
+        model=DeviceType,
+        required=False
     )
     access_switch_count = IntegerVar(
         description="Number of Access Switches to create"
     )
     access_switch_model = ObjectVar(
         description="Access Switch model",
-        model=DeviceType
+        model=DeviceType,
+        required=False
     )
     cabin_switch_count = IntegerVar(
         description="Number of Cabin Switches to create"
     )
     cabin_switch_model = ObjectVar(
         description="Cabin Switch Model",
-        model=DeviceType
+        model=DeviceType,
+        required=False
     )
 
     def run(self, data, commit):
@@ -47,43 +50,46 @@ class NewBranchScript(Script):
         self.log_success(f"Created new site: {site}")
 
         # Create Core Switches
-        core_switch_role = DeviceRole.objects.get(name='Core Switch')
-        for i in range(1, data['core_switch_count'] + 1):
-            switch = Device(
-                device_type=data['core_switch_model'],
-                name=f'{site.slug.upper()}-CORE-SW-{i}',
-                site=site,
-                status=DeviceStatusChoices.STATUS_PLANNED,
-                device_role=core_switch_role
-            )
-            switch.save()
-            self.log_success(f"Created new Core switch: {switch}")
+        if data['core_switch_count'] > 0:
+            core_switch_role = DeviceRole.objects.get(name='Core Switch')
+            for i in range(1, data['core_switch_count'] + 1):
+                switch = Device(
+                    device_type=data['core_switch_model'],
+                    name=f'{site.slug.upper()}-CORE-SW-{i}',
+                    site=site,
+                    status=DeviceStatusChoices.STATUS_PLANNED,
+                    device_role=core_switch_role
+                )
+                switch.save()
+                self.log_success(f"Created new Core switch: {switch}")
 
         # Create Access Switches
-        access_switch_role = DeviceRole.objects.get(name='Access Switch')
-        for i in range(1, data['access_switch_count'] + 1):
-            switch = Device(
-                device_type=data['access_switch_model'],
-                name=f'{site.slug.upper()}-ACCESS-SW-{i}',
-                site=site,
-                status=DeviceStatusChoices.STATUS_PLANNED,
-                device_role=access_switch_role
-            )
-            switch.save()
-            self.log_success(f"Created new Access switch: {switch}")
+        if data['access_switch_count'] > 0:
+            access_switch_role = DeviceRole.objects.get(name='Access Switch')
+            for i in range(1, data['access_switch_count'] + 1):
+                switch = Device(
+                    device_type=data['access_switch_model'],
+                    name=f'{site.slug.upper()}-ACCESS-SW-{i}',
+                    site=site,
+                    status=DeviceStatusChoices.STATUS_PLANNED,
+                    device_role=access_switch_role
+                )
+                switch.save()
+                self.log_success(f"Created new Access switch: {switch}")
 
         # Create Cabin Switches
-        cabin_switch_role = DeviceRole.objects.get(name='Cabin Switch')
-        for i in range(1, data['cabin_switch_count'] + 1):
-            switch = Device(
-                device_type=data['cabin_switch_model'],
-                name=f'{site.slug.upper()}-CABIN-SW-{i}',
-                site=site,
-                status=DeviceStatusChoices.STATUS_PLANNED,
-                device_role=cabin_switch_role
-            )
-            switch.save()
-            self.log_success(f"Created new Cabin switch: {switch}")
+        if data['cabin_switch_count'] > 0:
+            cabin_switch_role = DeviceRole.objects.get(name='Cabin Switch')
+            for i in range(1, data['cabin_switch_count'] + 1):
+                switch = Device(
+                    device_type=data['cabin_switch_model'],
+                    name=f'{site.slug.upper()}-CABIN-SW-{i}',
+                    site=site,
+                    status=DeviceStatusChoices.STATUS_PLANNED,
+                    device_role=cabin_switch_role
+                )
+                switch.save()
+                self.log_success(f"Created new Cabin switch: {switch}")
 
         # Generate a CSV table of new devices
         output = [

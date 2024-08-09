@@ -20,7 +20,7 @@ class CreateVLANs(Script):
         return list(reader)
 
     def run(self, data, commit):
-        vlans = self.fetch_vlans_from_github('https://raw.githubusercontent.com/your-repo/your-file.csv')
+        vlans = self.fetch_vlans_from_github('https://github.com/EOS-ITS/Netbox-Scripts/blob/main/vlans.csv')
 
         # Get or create the VLAN group
         vlan_group, created = VLANGroup.objects.get_or_create(name=self.vlan_group_name)

@@ -39,6 +39,11 @@ class DeploySiteWithVLANs(Script):
         model=DeviceType,
         required=False
     )
+    core_switch_template = ObjectVar(
+        description="Select the configuration template for Core Switches",
+        model=ConfigTemplate,
+        required=False
+    )
     access_switch_count = IntegerVar(
         description="Number of Access Switches to create"
     )
@@ -47,12 +52,22 @@ class DeploySiteWithVLANs(Script):
         model=DeviceType,
         required=False
     )
+    access_switch_template = ObjectVar(
+        description="Select the configuration template for Access Switches",
+        model=ConfigTemplate,
+        required=False
+    )
     cabin_switch_count = IntegerVar(
         description="Number of Cabin Switches to create"
     )
     cabin_switch_model = ObjectVar(
         description="Cabin Switch Model",
         model=DeviceType,
+        required=False
+    )
+    cabin_switch_template = ObjectVar(
+        description="Select the configuration template for Cabin Switches",
+        model=ConfigTemplate,
         required=False
     )
     vlan_csv_url = StringVar(
@@ -87,7 +102,7 @@ class DeploySiteWithVLANs(Script):
         self.log_success(f"Created prefix {prefix} for site {site.name}")
 
         # Step 3: Function to create switches, assign their management interfaces, and apply templates
-        def create_switches(switch_count, switch_model, switch_role, switch_type):
+        def create_switches(switch_count, switch_model, switch_role, switch_type, switch_template):
             for i in range(1, switch_count + 1):
                 switch_name = f'{site.slug.upper()}-{switch_type}-SW-{i}'
                 switch = Device(
@@ -111,30 +126,48 @@ class DeploySiteWithVLANs(Script):
                 interface.save()
                 self.log_success(f"Created virtual interface {interface.name} on {switch.name}")
 
-                # Apply configuration template based on the role, skip if template not found
-                try:
-                    template = ConfigTemplate.objects.get(name=f'{switch_role.name} Template')
-                    rendered_config = template.render(context={'device': switch})
-                    switch.config_context = rendered_config
-                    switch.save()
-                    self.log_success(f"Applied {switch_role.name} template to {switch.name}")
-                except ConfigTemplate.DoesNotExist:
-                    pass  # Just skip if the template doesn't exist
+                # Apply configuration template if selected
+                if switch_template:
+                    try:
+                        rendered_config = switch_template.render(context={'device': switch})
+                        switch.config_context = rendered_config
+                        switch.save()
+                        self.log_success(f"Applied {switch_template.name} to {switch.name}")
+                    except Exception as e:
+                        self.log_failure(f"Failed to apply configuration template for {switch.name}: {e}")
 
         # Step 4: Create Core Switches
         if data['core_switch_count'] > 0:
             core_switch_role = DeviceRole.objects.get(name='Core Switch')
-            create_switches(data['core_switch_count'], data['core_switch_model'], core_switch_role, "CORE")
+            create_switches(
+                switch_count=data['core_switch_count'], 
+                switch_model=data['core_switch_model'], 
+                switch_role=core_switch_role, 
+                switch_type="CORE",
+                switch_template=data.get('core_switch_template')
+            )
 
         # Step 5: Create Access Switches
         if data['access_switch_count'] > 0:
             access_switch_role = DeviceRole.objects.get(name='Access Switch')
-            create_switches(data['access_switch_count'], data['access_switch_model'], access_switch_role, "ACCESS")
+            create_switches(
+                switch_count=data['access_switch_count'], 
+                switch_model=data['access_switch_model'], 
+                switch_role=access_switch_role, 
+                switch_type="ACCESS",
+                switch_template=data.get('access_switch_template')
+            )
 
         # Step 6: Create Cabin Switches
         if data['cabin_switch_count'] > 0:
             cabin_switch_role = DeviceRole.objects.get(name='Cabin Switch')
-            create_switches(data['cabin_switch_count'], data['cabin_switch_model'], cabin_switch_role, "CABIN")
+            create_switches(
+                switch_count=data['cabin_switch_count'], 
+                switch_model=data['cabin_switch_model'], 
+                switch_role=cabin_switch_role, 
+                switch_type="CABIN",
+                switch_template=data.get('cabin_switch_template')
+            )
 
         # Step 7: Fetch and Create VLANs from CSV
         url = data['vlan_csv_url']

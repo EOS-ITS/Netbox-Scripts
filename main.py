@@ -130,7 +130,7 @@ class DeploySiteWithVLANs(Script):
                 if switch_template:
                     try:
                         rendered_config = switch_template.render(context={'device': switch})
-                        switch.config_context = rendered_config
+                        switch.custom_field_data['config_template'] = rendered_config
                         switch.save()
                         self.log_success(f"Applied {switch_template.name} to {switch.name}")
                     except Exception as e:

@@ -101,7 +101,7 @@ class DeploySiteWithVLANs(Script):
         )
         self.log_success(f"Created prefix {prefix} for site {site.name}")
 
-        # Step 3: Function to create switches and assign their management interfaces
+        # Step 3: Function to create switches, assign their management interfaces, and apply templates
         def create_switches(switch_count, switch_model, switch_role, switch_type, switch_template):
             for i in range(1, switch_count + 1):
                 switch_name = f'{site.slug.upper()}-{switch_type}-SW-{i}'
@@ -111,7 +111,7 @@ class DeploySiteWithVLANs(Script):
                     site=site,
                     status=DeviceStatusChoices.STATUS_PLANNED,
                     device_role=switch_role,
-                    config_template=switch_template if switch_template else None  # Assigning the config template
+                    config_template=switch_template if switch_template else None
                 )
                 switch.save()
                 self.log_success(f"Created new {switch_type} switch: {switch.name}")
@@ -126,6 +126,10 @@ class DeploySiteWithVLANs(Script):
                 )
                 interface.save()
                 self.log_success(f"Created virtual interface {interface.name} on {switch.name}")
+
+                # Log message for template assignment
+                if switch_template:
+                    self.log_success(f"Assigned {switch_template.name} template to {switch.name}")
 
         # Step 4: Create Core Switches
         if data['core_switch_count'] > 0:

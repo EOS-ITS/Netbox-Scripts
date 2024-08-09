@@ -2,18 +2,28 @@ import csv
 import requests
 from io import StringIO
 from ipam.models import VLAN
-from extras.scripts import Script
+from extras.scripts import Script, StringVar
 
 class CreateVLANs(Script):
     class Meta:
         name = "Create Layer 2 VLANs"
-        description = "Create all Layer 2 VLANs based on a CSV file from GitHub"
+        description = "Create all Layer 2 VLANs based on a CSV file from a specified URL"
+
+    csv_url = StringVar(
+        description="Enter the URL of the CSV file containing VLAN IDs and names",
+    )
 
     def run(self, data, commit):
-        # Fetch the CSV from the GitHub URL
-        url = 'https://raw.githubusercontent.com/EOS-ITS/Netbox-Scripts/main/vlans.csv'
-        response = requests.get(url)
-        csv_content = response.content.decode('utf-8')
+        url = data['csv_url']
+
+        # Fetch the CSV from the provided URL
+        try:
+            response = requests.get(url)
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            csv_content = response.content.decode('utf-8')
+        except requests.exceptions.RequestException as e:
+            self.log_failure(f"Failed to fetch the CSV file: {e}")
+            return
 
         # Read the CSV content
         reader = csv.DictReader(StringIO(csv_content))

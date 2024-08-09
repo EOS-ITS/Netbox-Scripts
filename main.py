@@ -2,6 +2,7 @@ from extras.scripts import *
 from django.utils.text import slugify
 from dcim.choices import DeviceStatusChoices, SiteStatusChoices, InterfaceTypeChoices
 from dcim.models import Device, DeviceRole, DeviceType, Site, Interface, Region, SiteGroup
+from extras.models import ConfigTemplate
 from ipam.models import VLAN, Prefix
 import csv
 import requests
@@ -85,12 +86,13 @@ class DeploySiteWithVLANs(Script):
         )
         self.log_success(f"Created prefix {prefix} for site {site.name}")
 
-        # Step 3: Function to create switches and their management interfaces
+        # Step 3: Function to create switches, assign their management interfaces, and apply templates
         def create_switches(switch_count, switch_model, switch_role, switch_type):
             for i in range(1, switch_count + 1):
+                switch_name = f'{site.slug.upper()}-{switch_type}-SW-{i}'
                 switch = Device(
                     device_type=switch_model,
-                    name=f'{site.slug.upper()}-{switch_type}-SW-{i}',
+                    name=switch_name,
                     site=site,
                     status=DeviceStatusChoices.STATUS_PLANNED,
                     device_role=switch_role
@@ -108,6 +110,16 @@ class DeploySiteWithVLANs(Script):
                 )
                 interface.save()
                 self.log_success(f"Created virtual interface {interface.name} on {switch.name}")
+
+                # Apply configuration template based on the role
+                try:
+                    template = ConfigTemplate.objects.get(name=f'{switch_role.name} Template')
+                    rendered_config = template.render(context={'device': switch})
+                    switch.config_context = rendered_config
+                    switch.save()
+                    self.log_success(f"Applied {switch_role.name} template to {switch.name}")
+                except ConfigTemplate.DoesNotExist:
+                    self.log_warning(f"No template found for role {switch_role.name}, skipping configuration for {switch.name}")
 
         # Step 4: Create Core Switches
         if data['core_switch_count'] > 0:

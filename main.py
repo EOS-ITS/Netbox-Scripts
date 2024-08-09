@@ -3,7 +3,6 @@ from django.utils.text import slugify
 from dcim.choices import DeviceStatusChoices, SiteStatusChoices
 from dcim.models import Device, DeviceRole, DeviceType, Site
 from ipam.models import VLAN, Prefix
-from ipam.fields import IPNetworkField
 import csv
 import requests
 from io import StringIO
@@ -20,7 +19,7 @@ class DeploySiteWithVLANs(Script):
     ship_id = StringVar(
         description="Enter Ship ID"
     )
-    prefix = IPNetworkField(
+    prefix = StringVar(
         description="Enter the IP prefix for the site (e.g., 192.168.1.0/24)"
     )
     core_switch_count = IntegerVar(

@@ -111,7 +111,7 @@ class DeploySiteWithVLANs(Script):
                 interface.save()
                 self.log_success(f"Created virtual interface {interface.name} on {switch.name}")
 
-                # Apply configuration template based on the role
+                # Apply configuration template based on the role, skip if template not found
                 try:
                     template = ConfigTemplate.objects.get(name=f'{switch_role.name} Template')
                     rendered_config = template.render(context={'device': switch})
@@ -119,7 +119,7 @@ class DeploySiteWithVLANs(Script):
                     switch.save()
                     self.log_success(f"Applied {switch_role.name} template to {switch.name}")
                 except ConfigTemplate.DoesNotExist:
-                    self.log_warning(f"No template found for role {switch_role.name}, skipping configuration for {switch.name}")
+                    pass  # Just skip if the template doesn't exist
 
         # Step 4: Create Core Switches
         if data['core_switch_count'] > 0:

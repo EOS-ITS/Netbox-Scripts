@@ -10,7 +10,7 @@ from io import StringIO
 class DeploySiteWithVLANs(Script):
 
     class Meta:
-        name = "Deploy Site with VLANs"
+        name = "Deploy Site"
         description = "Automate site deployment, including creating devices, VLANs, prefixes, and virtual interfaces."
 
     site_name = StringVar(
@@ -18,7 +18,7 @@ class DeploySiteWithVLANs(Script):
     )
     ship_id = StringVar(
         description="Enter Ship ID",
-        required=False
+        required=True
     )
     core_switch_count = IntegerVar(
         description="Number of Core Switches to create"
@@ -50,7 +50,7 @@ class DeploySiteWithVLANs(Script):
     management_vlan_id = IntegerVar(
         description="Enter the VLAN ID for the Management Interface (e.g., 188)"
     )
-    prefix_cidr = StringVar(
+    site_prefix = StringVar(
         description="Enter the CIDR for the site prefix (e.g., 192.168.0.0/24)"
     )
 
@@ -67,7 +67,7 @@ class DeploySiteWithVLANs(Script):
 
         # Step 2: Create a prefix for the site
         prefix = Prefix.objects.create(
-            prefix=data['prefix_cidr'],
+            prefix=data['site_prefix'],
             site=site,
             status='active'
         )

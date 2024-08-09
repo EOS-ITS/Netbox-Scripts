@@ -1,0 +1,6 @@
+vlan_id,name
+10,Office
+20,Lab
+30,Guest
+40,Voice
+50,Data

@@ -41,6 +41,9 @@ class CreateVLANsFromCSVScript(Script):
             self.log_failure(f"Failed to download CSV file: {e}")
             return
 
+        # Debugging: Log the raw CSV content
+        self.log_info(f"Raw CSV Content:\n{csv_content}")
+
         # Read VLANs from CSV content
         reader = csv.DictReader(StringIO(csv_content))
 

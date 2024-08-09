@@ -49,22 +49,22 @@ class NewBranchScript(Script):
 
         # Create Core Switches
         switch_role = DeviceRole.objects.get(name='Core Switch')
-        for i in range(1, data['switch_count'] + 1):
+        for i in range(1, data['core_switch_count'] + 1):
             switch = Device(
-                device_type=data['switch_model'],
+                device_type=data['core_switch_model'],
                 name=f'{site.slug.upper()}-SW-{i}',
                 site=site,
                 status=DeviceStatusChoices.STATUS_PLANNED,
                 device_role=switch_role
             )
             switch.save()
-            self.log_success(f"Created new switch: {switch}")
+            self.log_success(f"Created new Core switch: {switch}")
 
         # Create Access Switches
         switch_role = DeviceRole.objects.get(name='Access Switch')
-        for i in range(1, data['switch_count'] + 1):
+        for i in range(1, data['access_switch_count'] + 1):
             switch = Device(
-                device_type=data['switch_model'],
+                device_type=data['access_switch_model'],
                 name=f'{site.slug.upper()}-SW-{i}',
                 site=site,
                 status=DeviceStatusChoices.STATUS_PLANNED,
@@ -75,9 +75,9 @@ class NewBranchScript(Script):
 
         # Create Cabin Switches
         switch_role = DeviceRole.objects.get(name='Cabin Switch')
-        for i in range(1, data['switch_count'] + 1):
+        for i in range(1, data['cabin_switch_count'] + 1):
             switch = Device(
-                device_type=data['switch_model'],
+                device_type=data['cabin_switch_model'],
                 name=f'{site.slug.upper()}-SW-{i}',
                 site=site,
                 status=DeviceStatusChoices.STATUS_PLANNED,

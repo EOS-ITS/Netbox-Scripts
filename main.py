@@ -16,6 +16,9 @@ class DeploySiteWithVLANs(Script):
     site_name = StringVar(
         description="Name of the new site"
     )
+    ship_id = StringVar(
+        description="Enter Ship ID"
+    )
     core_switch_count = IntegerVar(
         description="Number of Core Switches to create"
     )
@@ -49,6 +52,7 @@ class DeploySiteWithVLANs(Script):
         site = Site(
             name=data['site_name'],
             slug=slugify(data['site_name']),
+            description=f"Ship ID: {data['ship_id']}",
             status=SiteStatusChoices.STATUS_PLANNED
         )
         site.save()
@@ -136,4 +140,3 @@ class DeploySiteWithVLANs(Script):
                 self.log_warning(f"VLAN {vlan_name} with ID {vlan_id} already exists for site {site.name}")
 
         self.log_info("Completed VLAN creation for the site.")
-

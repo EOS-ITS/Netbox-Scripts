@@ -66,7 +66,6 @@ class DeploySite(Script):
             prefix=data['management_prefix'],
             site=site,
             status='active',
-            role=None  # You can set a role if you have predefined roles in NetBox
         )
         prefix.save()
         self.log_success(f"Created management prefix: {prefix.prefix} for site {site.name}")

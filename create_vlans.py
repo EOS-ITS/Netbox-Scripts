@@ -27,9 +27,9 @@ class CreateVLANsFromCSVScript(Script):
         vlan_group = VLANGroup(
             name=data['vlan_group_name'],
             slug=slugify(data['vlan_group_name']),
+            site=data['site']  # Direct assignment
         )
         vlan_group.save()
-        vlan_group.site.set([data['site']])
         self.log_success(f"Created VLAN Group: {vlan_group}")
 
         # Read VLANs from CSV

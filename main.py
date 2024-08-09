@@ -130,7 +130,8 @@ class DeploySiteWithVLANs(Script):
                 if switch_template:
                     try:
                         rendered_config = switch_template.render(context={'device': switch})
-                        switch.custom_field_data['config_template'] = rendered_config
+                        self.log_info(f"Rendered config: {rendered_config}")  # Debug info
+                        switch.config_template = rendered_config  # This line might need to be changed to the correct field if this isn't the correct attribute
                         switch.save()
                         self.log_success(f"Applied {switch_template.name} to {switch.name}")
                     except Exception as e:

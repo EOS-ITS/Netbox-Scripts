@@ -33,7 +33,7 @@ class CreateVLANs(Script):
             self.log_info(f"Processing row: {row}")
 
             # Normalize the keys by stripping whitespace and converting to lower case
-            row = {k.strip().lower(): v.strip() for k, v in row.items()}
+            row = {k.strip().lower(): v.strip() for k, v in row.items() if k and v}
 
             # Safely access the VLAN ID and VLAN name
             try:

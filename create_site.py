@@ -55,7 +55,7 @@ class NewBranchScript(Script):
                 name=f'{site.slug.upper()}-SW-{i}',
                 site=site,
                 status=DeviceStatusChoices.STATUS_PLANNED,
-                device_role=switch_role
+                device_role=core_switch_role
             )
             switch.save()
             self.log_success(f"Created new Core switch: {switch}")
@@ -68,7 +68,7 @@ class NewBranchScript(Script):
                 name=f'{site.slug.upper()}-SW-{i}',
                 site=site,
                 status=DeviceStatusChoices.STATUS_PLANNED,
-                device_role=switch_role
+                device_role=access_switch_role
             )
             switch.save()
             self.log_success(f"Created new switch: {switch}")
@@ -81,7 +81,7 @@ class NewBranchScript(Script):
                 name=f'{site.slug.upper()}-SW-{i}',
                 site=site,
                 status=DeviceStatusChoices.STATUS_PLANNED,
-                device_role=switch_role
+                device_role=cabin_switch_role
             )
             switch.save()
             self.log_success(f"Created new switch: {switch}")

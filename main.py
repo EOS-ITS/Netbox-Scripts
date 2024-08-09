@@ -1,7 +1,7 @@
 from extras.scripts import *
 from django.utils.text import slugify
 from dcim.choices import DeviceStatusChoices, SiteStatusChoices, InterfaceTypeChoices
-from dcim.models import Device, DeviceRole, DeviceType, Site, Interface
+from dcim.models import Device, DeviceRole, DeviceType, Site, Interface, Region, SiteGroup
 from ipam.models import VLAN, Prefix
 import csv
 import requests
@@ -18,6 +18,16 @@ class DeploySiteWithVLANs(Script):
     )
     ship_id = StringVar(
         description="Enter Ship ID",
+        required=False
+    )
+    region = ObjectVar(
+        description="Select the region for the site",
+        model=Region,
+        required=False
+    )
+    site_group = ObjectVar(
+        description="Select the site group for the site",
+        model=SiteGroup,
         required=False
     )
     core_switch_count = IntegerVar(
@@ -60,7 +70,9 @@ class DeploySiteWithVLANs(Script):
             name=data['site_name'],
             slug=slugify(data['site_name']),
             status=SiteStatusChoices.STATUS_PLANNED,
-            description=data['ship_id'] if data['ship_id'] else None
+            description=data['ship_id'] if data['ship_id'] else None,
+            region=data['region'],
+            group=data['site_group']
         )
         site.save()
         self.log_success(f"Created new site: {site}")

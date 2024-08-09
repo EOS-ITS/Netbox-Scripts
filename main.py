@@ -1,0 +1,159 @@
+import csv
+import requests
+from io import StringIO
+from django.utils.text import slugify
+from ipam.models import VLAN
+from dcim.choices import DeviceStatusChoices, SiteStatusChoices
+from dcim.models import Device, DeviceRole, DeviceType, Site
+from extras.scripts import Script, StringVar, IntegerVar, ObjectVar
+
+class NewBranchWithVLANsScript(Script):
+
+    class Meta:
+        name = "New Branch with VLANs"
+        description = "Provision a new site with switches and create Layer 2 VLANs from a CSV"
+
+    # Site and device creation inputs
+    site_name = StringVar(
+        description="Name of the new site"
+    )
+    core_switch_count = IntegerVar(
+        description="Number of Core Switches to create"
+    )
+    core_switch_model = ObjectVar(
+        description="Core Switch Model",
+        model=DeviceType,
+        required=False
+    )
+    access_switch_count = IntegerVar(
+        description="Number of Access Switches to create"
+    )
+    access_switch_model = ObjectVar(
+        description="Access Switch model",
+        model=DeviceType,
+        required=False
+    )
+    cabin_switch_count = IntegerVar(
+        description="Number of Cabin Switches to create"
+    )
+    cabin_switch_model = ObjectVar(
+        description="Cabin Switch Model",
+        model=DeviceType,
+        required=False
+    )
+
+    # VLAN creation inputs
+    csv_url = StringVar(
+        description="Enter the URL of the CSV file containing VLAN IDs and names",
+    )
+
+    def run(self, data, commit):
+        # Step 1: Create the new site
+        site = Site(
+            name=data['site_name'],
+            slug=slugify(data['site_name']),
+            status=SiteStatusChoices.STATUS_PLANNED
+        )
+        site.save()
+        self.log_success(f"Created new site: {site}")
+
+        # Step 2: Create Core Switches
+        if data['core_switch_count'] > 0:
+            core_switch_role = DeviceRole.objects.get(name='Core Switch')
+            for i in range(1, data['core_switch_count'] + 1):
+                switch = Device(
+                    device_type=data['core_switch_model'],
+                    name=f'{site.slug.upper()}-CORE-SW-{i}',
+                    site=site,
+                    status=DeviceStatusChoices.STATUS_PLANNED,
+                    device_role=core_switch_role
+                )
+                switch.save()
+                self.log_success(f"Created new Core switch: {switch}")
+
+        # Step 3: Create Access Switches
+        if data['access_switch_count'] > 0:
+            access_switch_role = DeviceRole.objects.get(name='Access Switch')
+            for i in range(1, data['access_switch_count'] + 1):
+                switch = Device(
+                    device_type=data['access_switch_model'],
+                    name=f'{site.slug.upper()}-ACCESS-SW-{i}',
+                    site=site,
+                    status=DeviceStatusChoices.STATUS_PLANNED,
+                    device_role=access_switch_role
+                )
+                switch.save()
+                self.log_success(f"Created new Access switch: {switch}")
+
+        # Step 4: Create Cabin Switches
+        if data['cabin_switch_count'] > 0:
+            cabin_switch_role = DeviceRole.objects.get(name='Cabin Switch')
+            for i in range(1, data['cabin_switch_count'] + 1):
+                switch = Device(
+                    device_type=data['cabin_switch_model'],
+                    name=f'{site.slug.upper()}-CABIN-SW-{i}',
+                    site=site,
+                    status=DeviceStatusChoices.STATUS_PLANNED,
+                    device_role=cabin_switch_role
+                )
+                switch.save()
+                self.log_success(f"Created new Cabin switch: {switch}")
+
+        # Step 5: Generate a CSV table of new devices
+        output = [
+            'name,make,model'
+        ]
+        for device in Device.objects.filter(site=site):
+            attrs = [
+                device.name,
+                device.device_type.manufacturer.name,
+                device.device_type.model
+            ]
+            output.append(','.join(attrs))
+
+        self.log_info("Device creation completed.")
+        
+        # Step 6: VLAN Creation
+        url = data['csv_url']
+
+        # Fetch the CSV from the provided URL
+        try:
+            response = requests.get(url)
+            response.raise_for_status()  # Raise an exception for HTTP errors
+            csv_content = response.content.decode('utf-8')
+        except requests.exceptions.RequestException as e:
+            self.log_failure(f"Failed to fetch the CSV file: {e}")
+            return
+
+        # Read the CSV content
+        reader = csv.DictReader(StringIO(csv_content))
+
+        for row in reader:
+            # Output the row for debugging
+            self.log_info(f"Processing row: {row}")
+
+            # Normalize the keys by stripping whitespace and converting to lower case
+            row = {k.strip().lower(): v.strip() for k, v in row.items() if k and v}
+
+            # Safely access the VLAN ID and VLAN name
+            try:
+                vlan_id = int(row['vlan_id'])
+                vlan_name = row['vlan_name']
+            except KeyError as e:
+                self.log_failure(f"Missing expected column in CSV: {e}")
+                continue
+            except ValueError as e:
+                self.log_failure(f"Invalid VLAN ID value: {e}")
+                continue
+
+            # Check if the VLAN already exists in the selected site
+            if not VLAN.objects.filter(vid=vlan_id, site=site).exists():
+                vlan = VLAN(vid=vlan_id, name=vlan_name, site=site)
+                vlan.save()
+                self.log_success(f"Created VLAN {vlan_name} with ID {vlan_id} for site {site.name}")
+            else:
+                self.log_warning(f"VLAN {vlan_name} with ID {vlan_id} already exists for site {site.name}")
+
+        self.log_info("VLAN creation completed.")
+
+        return '\n'.join(output)

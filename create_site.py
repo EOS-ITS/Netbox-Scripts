@@ -9,18 +9,31 @@ class NewBranchScript(Script):
 
     class Meta:
         name = "New Branch"
-        description = "Provision a new branch site"
+        description = "Provision a new site"
 
     site_name = StringVar(
         description="Name of the new site"
     )
     switch_count = IntegerVar(
-        description="Number of access switches to create"
+        description="Number of Core Switches to create"
     )
     switch_model = ObjectVar(
-        description="Access switch model",
+        description="Core Switch Model",
         model=DeviceType
     )
+    switch_count = IntegerVar(
+        description="Number of Access Switches to create"
+    )
+    switch_model = ObjectVar(
+        description="Access Switch model",
+        model=DeviceType
+    )
+    switch_count = IntegerVar(
+        description="Number of Cabin Switches to create"
+    )
+    switch_model = ObjectVar(
+        description="Cabin Switch Model",
+        model=DeviceType
 
     def run(self, data, commit):
 
@@ -33,8 +46,34 @@ class NewBranchScript(Script):
         site.save()
         self.log_success(f"Created new site: {site}")
 
-        # Create access switches
+        # Create Core Switches
+        switch_role = DeviceRole.objects.get(name='Core Switch')
+        for i in range(1, data['switch_count'] + 1):
+            switch = Device(
+                device_type=data['switch_model'],
+                name=f'{site.slug.upper()}-SW-{i}',
+                site=site,
+                status=DeviceStatusChoices.STATUS_PLANNED,
+                device_role=switch_role
+            )
+            switch.save()
+            self.log_success(f"Created new switch: {switch}")
+
+        # Create Access Switches
         switch_role = DeviceRole.objects.get(name='Access Switch')
+        for i in range(1, data['switch_count'] + 1):
+            switch = Device(
+                device_type=data['switch_model'],
+                name=f'{site.slug.upper()}-SW-{i}',
+                site=site,
+                status=DeviceStatusChoices.STATUS_PLANNED,
+                device_role=switch_role
+            )
+            switch.save()
+            self.log_success(f"Created new switch: {switch}")
+
+        # Create Cabin Switches
+        switch_role = DeviceRole.objects.get(name='Cabin Switch')
         for i in range(1, data['switch_count'] + 1):
             switch = Device(
                 device_type=data['switch_model'],

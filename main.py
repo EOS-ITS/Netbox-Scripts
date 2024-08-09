@@ -2,6 +2,7 @@ from extras.scripts import *
 from django.utils.text import slugify
 from dcim.choices import DeviceStatusChoices, SiteStatusChoices, InterfaceTypeChoices
 from dcim.models import Device, DeviceRole, DeviceType, Site, Interface, Region, SiteGroup
+from extras.models import ConfigTemplate
 from ipam.models import VLAN, Prefix
 import csv
 import requests
@@ -80,13 +81,7 @@ class DeploySiteWithVLANs(Script):
     )
 
     def run(self, data, commit):
-        # Step 1: Check if the site already exists
-        existing_site = Site.objects.filter(name=data['ship_name']).first()
-        if existing_site:
-            self.log_failure(f"Site '{data['ship_name']}' already exists. Aborting operation.")
-            return
-
-        # Step 2: Create the new site
+        # Step 1: Create the new site
         site = Site(
             name=data['ship_name'],
             slug=slugify(data['ship_name']),
@@ -98,7 +93,7 @@ class DeploySiteWithVLANs(Script):
         site.save()
         self.log_success(f"Created new site: {site}")
 
-        # Step 3: Create a prefix for the site
+        # Step 2: Create a prefix for the site
         prefix = Prefix.objects.create(
             prefix=data['site_prefix'],
             site=site,
@@ -106,7 +101,7 @@ class DeploySiteWithVLANs(Script):
         )
         self.log_success(f"Created prefix {prefix} for site {site.name}")
 
-        # Step 4: Function to create switches, assign their management interfaces, and apply templates
+        # Step 3: Function to create switches, assign their management interfaces, and apply templates
         def create_switches(switch_count, switch_model, switch_role, switch_type, switch_template):
             for i in range(1, switch_count + 1):
                 switch_name = f'{site.slug.upper()}-{switch_type}-SW-{i}'
@@ -142,7 +137,7 @@ class DeploySiteWithVLANs(Script):
                     except Exception as e:
                         self.log_failure(f"Failed to apply configuration template for {switch.name}: {e}")
 
-        # Step 5: Create Core Switches
+        # Step 4: Create Core Switches
         if data['core_switch_count'] > 0:
             core_switch_role = DeviceRole.objects.get(name='Core Switch')
             create_switches(
@@ -153,7 +148,7 @@ class DeploySiteWithVLANs(Script):
                 switch_template=data.get('core_switch_template')
             )
 
-        # Step 6: Create Access Switches
+        # Step 5: Create Access Switches
         if data['access_switch_count'] > 0:
             access_switch_role = DeviceRole.objects.get(name='Access Switch')
             create_switches(
@@ -164,7 +159,7 @@ class DeploySiteWithVLANs(Script):
                 switch_template=data.get('access_switch_template')
             )
 
-        # Step 7: Create Cabin Switches
+        # Step 6: Create Cabin Switches
         if data['cabin_switch_count'] > 0:
             cabin_switch_role = DeviceRole.objects.get(name='Cabin Switch')
             create_switches(
@@ -175,7 +170,7 @@ class DeploySiteWithVLANs(Script):
                 switch_template=data.get('cabin_switch_template')
             )
 
-        # Step 8: Fetch and Create VLANs from CSV
+        # Step 7: Fetch and Create VLANs from CSV
         url = data['vlan_csv_url']
         try:
             response = requests.get(url)

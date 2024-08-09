@@ -10,7 +10,7 @@ from io import StringIO
 class DeploySiteWithVLANs(Script):
 
     class Meta:
-        name = "Deploy Site with VLANs"
+        name = "Deploy Site"
         description = "Automate site deployment, including creating devices, VLANs, prefixes, and virtual interfaces."
 
     site_name = StringVar(

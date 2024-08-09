@@ -67,12 +67,12 @@ class DeploySiteWithVLANs(Script):
     def run(self, data, commit):
         # Step 1: Create the new site
         site = Site(
-            name=data['site_name'],
-            slug=slugify(data['site_name']),
+            name=data['ship_name'],
+            slug=slugify(data['ship_name']),
             status=SiteStatusChoices.STATUS_PLANNED,
             description=data['ship_id'] if data['ship_id'] else None,
-            region=data['region'],
-            group=data['site_group']
+            region=data['ship_region'],
+            group=data['ship_group']
         )
         site.save()
         self.log_success(f"Created new site: {site}")

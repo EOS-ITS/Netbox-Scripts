@@ -101,7 +101,7 @@ class DeploySiteWithVLANs(Script):
         )
         self.log_success(f"Created prefix {prefix} for site {site.name}")
 
-        # Step 3: Function to create switches, assign their management interfaces, and apply templates
+        # Step 3: Function to create switches and assign their management interfaces
         def create_switches(switch_count, switch_model, switch_role, switch_type, switch_template):
             for i in range(1, switch_count + 1):
                 switch_name = f'{site.slug.upper()}-{switch_type}-SW-{i}'
@@ -110,7 +110,8 @@ class DeploySiteWithVLANs(Script):
                     name=switch_name,
                     site=site,
                     status=DeviceStatusChoices.STATUS_PLANNED,
-                    device_role=switch_role
+                    device_role=switch_role,
+                    config_template=switch_template if switch_template else None  # Assigning the config template
                 )
                 switch.save()
                 self.log_success(f"Created new {switch_type} switch: {switch.name}")
@@ -125,17 +126,6 @@ class DeploySiteWithVLANs(Script):
                 )
                 interface.save()
                 self.log_success(f"Created virtual interface {interface.name} on {switch.name}")
-
-                # Apply configuration template if selected
-                if switch_template:
-                    try:
-                        rendered_config = switch_template.render(context={'device': switch})
-                        self.log_info(f"Rendered config: {rendered_config}")  # Debug info
-                        switch.config_template = rendered_config  # This line might need to be changed to the correct field if this isn't the correct attribute
-                        switch.save()
-                        self.log_success(f"Applied {switch_template.name} to {switch.name}")
-                    except Exception as e:
-                        self.log_failure(f"Failed to apply configuration template for {switch.name}: {e}")
 
         # Step 4: Create Core Switches
         if data['core_switch_count'] > 0:

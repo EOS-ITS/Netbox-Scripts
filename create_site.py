@@ -34,6 +34,7 @@ class NewBranchScript(Script):
     switch_model = ObjectVar(
         description="Cabin Switch Model",
         model=DeviceType
+    )
 
     def run(self, data, commit):
 

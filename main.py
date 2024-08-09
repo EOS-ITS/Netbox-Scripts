@@ -13,19 +13,19 @@ class DeploySiteWithVLANs(Script):
         name = "Deploy Site"
         description = "Automate site deployment, including creating devices, VLANs, prefixes, and virtual interfaces."
 
-    site_name = StringVar(
+    ship_name = StringVar(
         description="Name of the new site"
     )
     ship_id = StringVar(
         description="Enter Ship ID",
         required=False
     )
-    region = ObjectVar(
+    ship_region = ObjectVar(
         description="Select the region for the site",
         model=Region,
         required=False
     )
-    site_group = ObjectVar(
+    ship_group = ObjectVar(
         description="Select the site group for the site",
         model=SiteGroup,
         required=False

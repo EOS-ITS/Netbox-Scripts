@@ -2,7 +2,8 @@ import csv
 import requests
 from io import StringIO
 from ipam.models import VLAN
-from extras.scripts import Script, StringVar
+from dcim.models import Site
+from extras.scripts import Script, StringVar, ObjectVar
 
 class CreateVLANs(Script):
     class Meta:
@@ -13,8 +14,14 @@ class CreateVLANs(Script):
         description="Enter the URL of the CSV file containing VLAN IDs and names",
     )
 
+    site = ObjectVar(
+        description="Select the site the VLANs will be assigned to",
+        model=Site
+    )
+
     def run(self, data, commit):
         url = data['csv_url']
+        selected_site = data['site']
 
         # Fetch the CSV from the provided URL
         try:
@@ -46,12 +53,13 @@ class CreateVLANs(Script):
                 self.log_failure(f"Invalid VLAN ID value: {e}")
                 continue
 
-            # Check if the VLAN already exists
-            if not VLAN.objects.filter(vid=vlan_id).exists():
-                vlan = VLAN(vid=vlan_id, name=vlan_name)
+            # Check if the VLAN already exists in the selected site
+            if not VLAN.objects.filter(vid=vlan_id, site=selected_site).exists():
+                vlan = VLAN(vid=vlan_id, name=vlan_name, site=selected_site)
                 vlan.save()
-                self.log_success(f"Created VLAN {vlan_name} with ID {vlan_id}")
+                self.log_success(f"Created VLAN {vlan_name} with ID {vlan_id} for site {selected_site.name}")
             else:
-                self.log_warning(f"VLAN {vlan_name} with ID {vlan_id} already exists")
+                self.log_warning(f"VLAN {vlan_name} with ID {vlan_id} already exists for site {selected_site.name}")
 
         self.log_info("Completed VLAN creation.")
+

@@ -178,8 +178,6 @@ class DeploySiteWithVLANs(Script):
         reader = csv.DictReader(StringIO(csv_content))
 
         for row in reader:
-            # Output the row for debugging
-            self.log_info(f"Processing row: {row}")
 
             # Normalize the keys by stripping whitespace and converting to lower case
             row = {k.strip().lower(): v.strip() for k, v in row.items() if k and v}
